@@ -6,6 +6,7 @@ import { ApolloServer } from '@apollo/server'
 import http from 'http'
 import {ApolloServerPluginDrainHttpServer} from '@apollo/server/plugin/drainHttpServer'
 import { resolvers, typeDefs } from './lib/graph_schema/schema.js'
+import { connectDb } from './lib/db/index.js'
 
 dotenv.config()
 
@@ -25,15 +26,19 @@ const apolloserver = new ApolloServer({
 
 async function startServer() {
     try {
+         connectDb()
          await apolloserver.start()
         console.log(`server has started`)
 
-        app.use(
-      '/graphql',
-      express.json(),
-      expressMiddleware(apolloserver)
-    )
-
+      app.use(
+  '/graphql',
+  express.json(),
+  expressMiddleware(apolloserver, {
+    context: async ({ req }) => {
+      return { req };
+    }
+  })
+)
     app.get('/', (req, res) => {
       res.send('Welcome to my Hybrid API! Go to /graphql')
     })
