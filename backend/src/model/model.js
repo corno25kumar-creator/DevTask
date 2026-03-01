@@ -31,11 +31,10 @@ TaskSchema.index({ id: 1 }, { unique: true });
 TaskSchema.index({ title: 'text', description: 'text' });
 
 // Pre-save hook for Custom ID
-TaskSchema.pre('save', async function (next) {
+TaskSchema.pre('save', function () {
   if (!this.id) {
     this.id = `task_${this._id}`;
   }
-  next();
 });
 
 const TaskModel = mongoose.model('task', TaskSchema);
@@ -63,12 +62,12 @@ export const TaskTypeDef = gql`
     description: String
     status: String
     priority: String
-    projectId: ID!
+    projectId: ID
     assignedTo: ID
   }
 
   extend type Query {
-    taskList(projectId: ID!): [Task]!
+    taskList(projectId: ID): [Task]!
     taskDetail(id: ID!): Task
   }
 
@@ -84,10 +83,14 @@ export const TaskTypeDef = gql`
 // ---------------------------------------------------------
 export const TaskResolver = {
   Query: {
-    taskList: async (_, { projectId }, { req }) => {
-      authMiddlewareGraph(req); 
-      return await TaskModel.find({ projectId }).sort({ createdAt: -1 });
-    },
+    // taskList: async (_, { projectId }, { req }) => {
+    //   authMiddlewareGraph(req); 
+    //   return await TaskModel.find({ projectId }).sort({ createdAt: -1 });
+    // }
+    taskList: async (_, __, { req }) => {
+  authMiddlewareGraph(req);
+  return await TaskModel.find().sort({ createdAt: -1 });
+},
     taskDetail: async (_, { id }, { req }) => {
       authMiddlewareGraph(req);
       return await TaskModel.findOne({ id });
@@ -95,7 +98,7 @@ export const TaskResolver = {
   },
   Mutation: {
     taskCreate: async (_, { input }, { req }) => {
-      authMiddlewareGraph(req);
+       authMiddlewareGraph(req);
       const task = new TaskModel(input);
       await task.save();
       return task;
