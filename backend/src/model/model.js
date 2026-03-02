@@ -1,4 +1,5 @@
 import { gql } from 'graphql-tag'
+import { TaskInputSchema } from "../validator/task.validator.js";
 import mongoose from 'mongoose';
 import { authMiddlewareGraph } from '../middlewares/index.js';
 
@@ -97,12 +98,21 @@ export const TaskResolver = {
     },
   },
   Mutation: {
+    
     taskCreate: async (_, { input }, { req }) => {
-       authMiddlewareGraph(req);
-      const task = new TaskModel(input);
-      await task.save();
-      return task;
-    },
+  authMiddlewareGraph(req);
+
+  const parsed = TaskInputSchema.safeParse(input);
+
+  if (!parsed.success) {
+    throw new GraphQLError(parsed.error.errors[0].message);
+  }
+
+  const task = new TaskModel(parsed.data);
+  await task.save();
+
+  return task;
+},
     taskUpdate: async (_, { id, input }, { req }) => {
       authMiddlewareGraph(req);
       return await TaskModel.findOneAndUpdate({ id }, input, { new: true });
